@@ -1,0 +1,13 @@
+{
+  "name": "mission-control",
+  "owner": {
+    "name": "Shagnik"
+  },
+  "plugins": [
+    {
+      "name": "mission-control",
+      "source": "./"
+    }
+  ],
+  "description": "Mission Control: a Claude Code mod for context, usage limits, model routing and safe unattended runs"
+}

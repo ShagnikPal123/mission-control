@@ -1,0 +1,20 @@
+{
+  "name": "mission-control",
+  "version": "1.0.0",
+  "description": "Context and usage meters, auto-resume, model router, agent cap, proof cards, context health, midnight and god modes, ship guard, Windows overlay",
+  "author": {
+    "name": "Shagnik"
+  },
+  "types": "./types/index.d.ts",
+  "license": "MIT",
+  "repository": "https://github.com/ShagnikPal123/mission-control",
+  "keywords": [
+    "usage",
+    "limits",
+    "context",
+    "router",
+    "agents",
+    "overlay",
+    "windows"
+  ]
+}
