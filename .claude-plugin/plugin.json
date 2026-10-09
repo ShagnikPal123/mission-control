@@ -1,6 +1,6 @@
 {
   "name": "mission-control",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Context and usage meters, auto-resume, model router, agent cap, proof cards, context health, midnight and god modes, ship guard, Windows overlay",
   "author": {
     "name": "Shagnik"

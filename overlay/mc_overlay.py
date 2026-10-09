@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import subprocess
 import sys
 import time
 
@@ -89,6 +90,11 @@ def detail_lines(status: dict) -> list[str]:
     return lines
 
 
+def claude_running(tasklist_output: str) -> bool:
+    """True when `tasklist` lists the Claude app. Pure, so it can be tested."""
+    return any(line.split()[0].lower() == 'claude.exe' for line in tasklist_output.splitlines() if line.strip())
+
+
 def is_stale(mtime: float, now: float | None = None) -> bool:
     """A status file untouched for 15 minutes means no Claude session is running."""
     return (now if now is not None else time.time()) - mtime > 15 * 60
@@ -161,6 +167,9 @@ def main() -> None:
     dot.pack(side='left')
     line = tk.Label(head, text='Mission Control', fg=TEXT, bg=BG, font=font, anchor='w')
     line.pack(side='left', padx=(6, 0))
+    close = tk.Label(head, text='×', fg=DIM, bg=BG, font=font, cursor='hand2')
+    close.pack(side='right')
+    close.bind('<Button-1>', lambda _e: root.destroy())
     body = tk.Frame(frame, bg=BG)
     details = tk.Label(body, text='', fg=DIM, bg=BG, font=font_small, justify='left', anchor='nw')
     details.pack(fill='both', expand=True, padx=16)
@@ -210,7 +219,20 @@ def main() -> None:
     root.bind('<Enter>', expand)
     root.bind('<Leave>', leave)
 
+    polls = {'n': 0}
+
+    def claude_is_up() -> bool:
+        try:
+            out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq claude.exe', '/NH'], capture_output=True, text=True, timeout=5).stdout
+            return claude_running(out)
+        except (OSError, subprocess.SubprocessError):
+            return True  # unknown: keep showing rather than hide wrongly
+
     def poll():
+        polls['n'] += 1
+        if polls['n'] % 4 == 0 and not claude_is_up():
+            root.destroy()  # Claude is off: the pill goes with it
+            return
         status, mtime = read_status()
         if is_stale(mtime):
             root.withdraw()

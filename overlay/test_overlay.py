@@ -1,7 +1,7 @@
 import time
 import unittest
 
-from mc_overlay import detail_lines, is_stale, summary_line, top_pct, zone
+from mc_overlay import claude_running, detail_lines, is_stale, summary_line, top_pct, zone
 
 STATUS = {
     'meter': {
@@ -53,6 +53,16 @@ class OverlayLogic(unittest.TestCase):
     def test_stale_status(self):
         self.assertTrue(is_stale(0.0, now=1000.0))
         self.assertFalse(is_stale(995.0, now=1000.0))
+
+
+class ClaudeRunning(unittest.TestCase):
+    def test_finds_the_claude_app(self):
+        out = 'Image Name   PID\nClaude.exe     1234 Console 1\n'
+        self.assertTrue(claude_running(out))
+
+    def test_ignores_other_programs(self):
+        self.assertFalse(claude_running('INFO: No tasks are running which match the specified criteria.'))
+        self.assertFalse(claude_running('Notepad.exe 99 Console 1'))
 
 
 if __name__ == '__main__':
