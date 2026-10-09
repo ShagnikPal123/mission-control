@@ -122,3 +122,21 @@ test('/mc router off stops the router rewriting anything', async ($, on) => {
   expect(await mc($, '')).toContain('Router: off')
   expect(await mc($, 'router on')).toBe('Router on.')
 })
+
+test('/mc panel opens the side panel and says when it cannot', async ($, on) => {
+  mock.store(on)
+  fakeEngine(on)
+  commands(on)
+  let placed = true
+  const opened: string[] = []
+  on('ui.open', (_, e) => {
+    opened.push(e.id)
+    return { value: placed ? { isPlaced: true } : { isPlaced: false, reason: 'no room beside the chat' } }
+  })
+  await $.session.start(START)
+
+  expect(await mc($, 'panel')).toBe('Side panel opened.')
+  expect(opened).toEqual(['mc-side'])
+  placed = false
+  expect(await mc($, 'panel')).toBe('The side panel could not open: no room beside the chat. Use the Side layout, or widen the window.')
+})

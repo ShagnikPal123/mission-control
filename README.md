@@ -65,7 +65,7 @@ Answer `y` to add the marketplace and pick a scope. It loads straight away, and 
 
 | Command | What it does |
 |---|---|
-| `/mc` | State, and switches: `model pin <haiku\|sonnet\|opus>`, `model auto`, `router on\|off`, `opus on\|off`, `agents <n>`, `resume on\|off`, `alerts on\|off`, `overlay on\|off`, `typo <wrong> <right>`, `glossary <term> = <meaning>`, `tokens` |
+| `/mc` | State, and switches: `panel` (open the side panel), `model pin <haiku\|sonnet\|opus>`, `model auto`, `router on\|off`, `opus on\|off`, `agents <n>`, `resume on\|off`, `alerts on\|off`, `overlay on\|off`, `typo <wrong> <right>`, `glossary <term> = <meaning>`, `tokens` |
 | `/midnight` | `[hours] [--ship]`, `off`, `status` |
 | `/god` | `[minutes]`, `off`, `log` |
 | `/ship` | `/ship`, `/ship never <pattern>`, `/ship never` |

@@ -830,7 +830,7 @@ async function godCommand($: EngineInterface, args: string, ownerKind: string | 
 }
 
 // ── F. /mc ───────────────────────────────────────────────────────────────
-const MC_USAGE = 'Usage: /mc [model pin <haiku|sonnet|opus> | model auto | agents <1-10> | resume on|off | alerts on|off | tokens]'
+const MC_USAGE = 'Usage: /mc [panel | model pin <haiku|sonnet|opus> | model auto | agents <1-10> | resume on|off | alerts on|off | tokens]'
 
 async function saveSettings($: EngineInterface, s: MissionSettings): Promise<void> {
   await update($, settingsAtom, () => s)
@@ -882,6 +882,7 @@ async function mcCommand($: EngineInterface, args: string): Promise<string> {
     await saveWords($)
     return `Glossary: "${gl[1]}" = ${gl[2]}.`
   }
+  if (a === 'panel') return openSide($)
   const ov = /^overlay (on|off)$/.exec(a)
   if (ov !== null) {
     await saveSettings($, { ...settings, overlay: ov[1] === 'on' })
@@ -990,11 +991,15 @@ const LAYOUT_NAME: Record<(typeof LAYOUTS)[number], string> = { bar: 'Bar', side
 const nextLayout = (l: (typeof LAYOUTS)[number]) => LAYOUTS[(LAYOUTS.indexOf(l) + 1) % LAYOUTS.length] ?? 'bar'
 const SIDE = 'mc-side'
 
-async function openSide($: EngineInterface): Promise<void> {
+/** Opens the side panel; says why when the surface cannot seat it. */
+async function openSide($: EngineInterface): Promise<string> {
   try {
-    await $.ui.open({ id: SIDE, title: 'Mission Control' })
+    const r = await $.ui.open({ id: SIDE, title: 'Mission Control' })
+    return r.isPlaced
+      ? 'Side panel opened.'
+      : `The side panel could not open: ${r.reason}. Use the Side layout, or widen the window.`
   } catch {
-    // A surface without panes keeps the band.
+    return 'This window has no side panels; the band above the chat box has everything.'
   }
 }
 
