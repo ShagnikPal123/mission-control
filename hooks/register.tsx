@@ -1353,6 +1353,56 @@ export const register: Register = on => {
     const paceNow = pace(meter?.fiveHour?.pct ?? 0, meter?.fiveHour?.resetsAt, Date.now())
     const routeChip =
       settings.pin !== null ? `pinned: ${settings.pin}` : route === null ? null : `auto: ${route.model}·${route.effort}`
+    const modeControls = (
+      <Box key="mode-controls" flexDirection="row" flexWrap="wrap">
+        {god !== null ? (
+          <Box key="god-chip">
+            <Text bold color="red">{` ⚡ GOD MODE · ${godLeft}m left`}</Text>
+          </Box>
+        ) : (
+          <Button
+            key="god"
+            label="⚡ God mode"
+            onPress={async () => {
+              await startGod($, 60)
+            }}
+          />
+        )}
+        {god !== null && (
+          <Button
+            key="god-stop"
+            label="Stop"
+            onPress={async () => {
+              await stopGod($, 'stopped by owner')
+            }}
+          />
+        )}
+        {midnight !== null ? (
+          <Box key="midnight-chip">
+            <Text color="magenta">{` 🌙 midnight · ${Math.floor(minutesLeft / 60)}h${minutesLeft % 60}m left`}</Text>
+          </Box>
+        ) : (
+          <Button
+            key="midnight"
+            label="🌙 Midnight"
+            onPress={async () => {
+              if ((await askOwner($, 'Start an 8-hour midnight run? Claude keeps working on its own and decides without asking.', ['Start', 'Cancel'])) === 'Start') {
+                await startMidnight($, '')
+              }
+            }}
+          />
+        )}
+        {midnight !== null && (
+          <Button
+            key="midnight-stop"
+            label="Stop"
+            onPress={async () => {
+              await stopMidnight($, 'stopped by owner')
+            }}
+          />
+        )}
+      </Box>
+    )
     const layoutControls = (
       <Box key="layout-controls" flexDirection="row">
         {settings.layout !== 'side' && <Button key="peek" label="▤ panel" hotkey="1" onPress={async () => await openSide($)} />}
@@ -1369,6 +1419,7 @@ export const register: Register = on => {
           <Box key="side-chip">
             <Text color={color}>{`● ${zone} · Mission Control is in the side panel `}</Text>
           </Box>
+          {modeControls}
           {layoutControls}
         </Box>
       )
@@ -1379,6 +1430,7 @@ export const register: Register = on => {
           <Box key="compact">
             <Text color={color} dimColor={zone === 'ok'}>{formatMeter(meter)}</Text>
           </Box>
+          {modeControls}
           {layoutControls}
         </Box>
       )
@@ -1424,43 +1476,7 @@ export const register: Register = on => {
           </Box>
         )}
         {routeChip !== null && <Text dimColor>{`  │ ${routeChip}`}</Text>}
-        {god !== null ? (
-          <Box key="god-chip">
-            <Text bold color="red">{` ⚡ GOD MODE · ${godLeft}m left`}</Text>
-          </Box>
-        ) : (
-          <Button
-            key="god"
-            label="⚡ God mode"
-            onPress={async () => {
-              await startGod($, 60)
-            }}
-          />
-        )}
-        {god !== null && (
-          <Button
-            key="god-stop"
-            label="Stop"
-            onPress={async () => {
-              await stopGod($, 'stopped by owner')
-            }}
-          />
-        )}
-        {midnight !== null ? (
-          <Box key="midnight-chip">
-            <Text color="magenta">{` 🌙 midnight · ${Math.floor(minutesLeft / 60)}h${minutesLeft % 60}m left`}</Text>
-          </Box>
-        ) : (
-          <Button
-            key="midnight"
-            label="🌙 Midnight"
-            onPress={async () => {
-              if ((await askOwner($, 'Start an 8-hour midnight run? Claude keeps working on its own and decides without asking.', ['Start', 'Cancel'])) === 'Start') {
-                await startMidnight($, '')
-              }
-            }}
-          />
-        )}
+        {modeControls}
         {limited !== null && (zone === 'high' || zone === 'danger') && <Text color={color}>{'  │ auto-resume armed'}</Text>}
         {layoutControls}
         {zone === 'danger' && !acked && (
@@ -1510,6 +1526,11 @@ export const register: Register = on => {
     const pct = progress.total === 0 ? null : (progress.done / progress.total) * 100
     const notes = await read($, notesAtom)
     const meta = await read($, agentMetaAtom)
+    const god = await read($, godAtom)
+    const midnight = await read($, midnightAtom)
+    const nowMs = god === null && midnight === null ? Date.now() : await $.clock.now()
+    const godLeft = god === null ? 0 : Math.max(0, Math.round((god.endsAt - nowMs) / MIN))
+    const minutesLeft = midnight === null ? 0 : Math.max(0, Math.round((midnight.endsAt - nowMs) / MIN))
     const turnList = await read($, turnsAtom)
     const here = projectFor(sessionCwd, projects) ?? autoProject(sessionCwd)
     let costLine = ''
@@ -1592,6 +1613,54 @@ export const register: Register = on => {
             ))}
           </Box>
         )}
+        <Box key="side-modes" flexDirection="row" flexWrap="wrap">
+        {god !== null ? (
+          <Box key="side-god-chip">
+            <Text bold color="red">{` ⚡ GOD MODE · ${godLeft}m left`}</Text>
+          </Box>
+        ) : (
+          <Button
+            key="side-god"
+            label="⚡ God mode"
+            onPress={async () => {
+              await startGod($, 60)
+            }}
+          />
+        )}
+        {god !== null && (
+          <Button
+            key="side-god-stop"
+            label="Stop"
+            onPress={async () => {
+              await stopGod($, 'stopped by owner')
+            }}
+          />
+        )}
+        {midnight !== null ? (
+          <Box key="side-midnight-chip">
+            <Text color="magenta">{` 🌙 midnight · ${Math.floor(minutesLeft / 60)}h${minutesLeft % 60}m left`}</Text>
+          </Box>
+        ) : (
+          <Button
+            key="side-midnight"
+            label="🌙 Midnight"
+            onPress={async () => {
+              if ((await askOwner($, 'Start an 8-hour midnight run? Claude keeps working on its own and decides without asking.', ['Start', 'Cancel'])) === 'Start') {
+                await startMidnight($, '')
+              }
+            }}
+          />
+        )}
+        {midnight !== null && (
+          <Button
+            key="side-midnight-stop"
+            label="Stop"
+            onPress={async () => {
+              await stopMidnight($, 'stopped by owner')
+            }}
+          />
+        )}
+        </Box>
         <Box key="side-docs" flexDirection="row" flexWrap="wrap">
           {docs.slice(0, 4).map((d, i) => (
             <Button key={`doc-${i}`} label={`@ ${d.split('/').pop() ?? d}`} onPress={async () => void (await $.prompt.fill({ text: `@${d} `, mode: 'insert' }))} />

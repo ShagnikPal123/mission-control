@@ -7,7 +7,7 @@ import { fakeEngine } from './kit'
 const START = { cwd: 'C:/demo/app', surface: 'terminal', isInteractive: true } as const
 const PANE = { component: 'Pane', requestId: 'mc-side', props: { title: 'Mission Control' } } as const
 
-function host(on: On) {
+function host(on: On, answer = 'Approve') {
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('session.root', () => ({ value: 'C:/demo/app' }))
   const filled: string[] = []
@@ -16,7 +16,7 @@ function host(on: On) {
     return { isFilled: true }
   })
   on('tool.call', { tool: 'AskUserQuestion' }, (_, e) => ({
-    result: { questions: e.questions, answers: Object.fromEntries(e.questions.map(q => [q.question, 'Approve'])) },
+    result: { questions: e.questions, answers: Object.fromEntries(e.questions.map(q => [q.question, answer])) },
   }))
   on('agent.spawn', (_, e) => ({ model: e.model ?? 'inherit', agentId: 'a1' }))
   return filled
@@ -90,4 +90,49 @@ test('/look quotes what you selected into the prompt', async ($, on) => {
   expect(filled).toEqual(['Check on this and tell me what is wrong, if anything:\n> cpu 98% on worker-3\n\n'])
   selection = undefined
   expect((await $.command.run({ command: 'look', args: '' })).text).toBe('Nothing is selected. Highlight some text first, then run /look.')
+})
+
+const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false } } as const
+
+for (const [name, presses] of [['bar', 0], ['side', 1], ['compact', 2]] as const) {
+  test(`God mode, Midnight and Stop stay on the band in the ${name} layout`, async ($, on) => {
+    mock.store(on)
+    fakeEngine(on)
+    host(on)
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.close', () => ({ value: undefined }))
+    await $.session.start(START)
+    const ui = await $.ui.mount({ plugin: 'mission-control', surface: 'terminal', ...BAND })
+    for (let i = 0; i < presses; i++) await ui.press({ key: 'layout' })
+
+    expect(await ui.find({ key: 'god' })).toBeDefined()
+    expect(await ui.find({ key: 'midnight' })).toBeDefined()
+  })
+}
+
+test('the side panel has the God mode and Midnight buttons too', async ($, on) => {
+  mock.store(on)
+  fakeEngine(on)
+  host(on)
+  await $.session.start(START)
+  const ui = await $.ui.mount({ plugin: 'mission-control', surface: 'terminal', ...PANE })
+
+  expect(await ui.find({ key: 'side-god' })).toBeDefined()
+  expect(await ui.find({ key: 'side-midnight' })).toBeDefined()
+})
+
+test('the stop buttons appear while a mode is on', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.store(on)
+  fakeEngine(on)
+  host(on, 'Turn on')
+  on('mcp.call', () => ({ deny: 'none' }))
+  await $.session.start(START)
+  const band = await $.ui.mount({ plugin: 'mission-control', surface: 'terminal', ...BAND })
+  await band.press({ key: 'god' })
+  const pane = await $.ui.mount({ plugin: 'mission-control', surface: 'terminal', ...PANE })
+
+  expect(await band.find({ key: 'god-stop' })).toBeDefined()
+  expect(await pane.find({ key: 'side-god-stop' })).toBeDefined()
+  void clock
 })

@@ -20,6 +20,7 @@ Answer `y` to add the marketplace and pick a scope. It loads straight away, and 
 - A context sparkline.
 - A pace marker that shows whether you are burning through the 5-hour window faster than the clock.
 - Agents running against the cap, and session cost.
+- **⚡ God mode**, **🌙 Midnight** and a **Stop** for each stay on the band in every layout, and in the side panel.
 - **⇄ Layout** cycles Bar / Side / Compact; **🔒** locks the layout.
 - **▤ panel** (key `1`) opens the side panel.
 
