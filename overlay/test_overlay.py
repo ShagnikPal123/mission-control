@@ -1,7 +1,7 @@
 import time
 import unittest
 
-from mc_overlay import claude_running, detail_lines, is_stale, summary_line, top_pct, zone
+from mc_overlay import claude_running, detail_lines, is_stale, overlay_wanted, summary_line, top_pct, zone
 
 STATUS = {
     'meter': {
@@ -63,6 +63,15 @@ class ClaudeRunning(unittest.TestCase):
     def test_ignores_other_programs(self):
         self.assertFalse(claude_running('INFO: No tasks are running which match the specified criteria.'))
         self.assertFalse(claude_running('Notepad.exe 99 Console 1'))
+
+
+class OverlaySwitch(unittest.TestCase):
+    def test_off_closes_the_pill(self):
+        self.assertFalse(overlay_wanted({'settings': {'overlay': False}}))
+
+    def test_on_or_unknown_keeps_it(self):
+        self.assertTrue(overlay_wanted({'settings': {'overlay': True}}))
+        self.assertTrue(overlay_wanted({}))
 
 
 if __name__ == '__main__':

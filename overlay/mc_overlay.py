@@ -95,6 +95,11 @@ def claude_running(tasklist_output: str) -> bool:
     return any(line.split()[0].lower() == 'claude.exe' for line in tasklist_output.splitlines() if line.strip())
 
 
+def overlay_wanted(status: dict) -> bool:
+    """False once the owner runs `/mc overlay off`, so a running pill closes too."""
+    return (status.get('settings') or {}).get('overlay') is not False
+
+
 def is_stale(mtime: float, now: float | None = None) -> bool:
     """A status file untouched for 15 minutes means no Claude session is running."""
     return (now if now is not None else time.time()) - mtime > 15 * 60
@@ -234,6 +239,9 @@ def main() -> None:
             root.destroy()  # Claude is off: the pill goes with it
             return
         status, mtime = read_status()
+        if not overlay_wanted(status):
+            root.destroy()  # turned off with /mc overlay off
+            return
         if is_stale(mtime):
             root.withdraw()
         else:
