@@ -30,3 +30,12 @@ export function tokenReportText(turns: readonly TurnRecord[]): string {
   ]
   return lines.join('\n')
 }
+
+/** One line for the side panel: spend, padded turns, estimated waste. */
+export function tokenSummary(turns: readonly TurnRecord[]): string {
+  if (turns.length === 0) return 'no turns yet'
+  const total = turns.reduce((sum, t) => sum + t.outputTokens, 0)
+  const flagged = turns.filter(t => t.flag !== null)
+  const wasted = flagged.reduce((sum, t) => sum + t.outputTokens, 0)
+  return `output ${n(total)} · ${flagged.length} of ${turns.length} turns padded · ~${n(wasted)} wasted`
+}

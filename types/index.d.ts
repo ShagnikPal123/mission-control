@@ -69,6 +69,7 @@ declare module 'claude-code' {
       trend: number[]
       staleMeter: boolean
       notes: string[]
+      agentMeta: Record<string, { model: string; effort: string }>
     }
   }
 }

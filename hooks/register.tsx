@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS, LIMIT_LABEL, STORE, WINDOW_LABEL } from './constants'
 import { CLASSIFY_LABELS, fromLabel, pickAgent, REPORT_RULE } from './agents'
 import { biasRoute, effortUp, isEffort, isModel, isSkippable, MODEL_ID, parseRoute, ROUTER_PROMPT, routeLine, stepUp } from './route'
 import { classifyCall, deletesOutside, gitRepoOf, hasSecret, isOwnerOrigin, isPushOrDeploy, midnightStop, parseMidnightArgs, shellCommand } from './risk'
-import { BREVITY, flagTurn, tokenReportText, wordCount } from './waste'
+import { BREVITY, flagTurn, tokenReportText, tokenSummary, wordCount } from './waste'
 import { CORRECTION, healthAction, healthLabel, scoreTurn } from './health'
 import { meterBar } from './zones'
 import { autocorrect, DEFAULT_GLOSSARY, glossaryHints } from './lang'
@@ -39,6 +39,7 @@ const splitAtom = atom({ plugin: 'mission-control', key: 'split' } as const, [])
 const proofAtom = atom({ plugin: 'mission-control', key: 'proof' } as const, null)
 const trendAtom = atom({ plugin: 'mission-control', key: 'trend' } as const, [])
 const staleAtom = atom({ plugin: 'mission-control', key: 'staleMeter' } as const, false)
+const agentMetaAtom = atom({ plugin: 'mission-control', key: 'agentMeta' } as const, {})
 const notesAtom = atom({ plugin: 'mission-control', key: 'notes' } as const, [])
 const agentsLiveAtom = atom({ plugin: 'mission-control', key: 'agentsLive' } as const, 0)
 
@@ -935,6 +936,10 @@ async function registerCommands($: EngineInterface): Promise<void> {
   }
   try {
     await $.command.register({
+      name: 'look',
+      description: 'Quote what you selected into the prompt and ask Claude to check it',
+    })
+    await $.command.register({
       name: 'ship',
       description: 'Ship: tests, build, never-ship check, secret scan, commit, push, deploy',
       argumentHint: '| never <pattern> | never',
@@ -1174,10 +1179,21 @@ export const register: Register = on => {
     if (!(await approveSpawn($, e.description || e.prompt.slice(0, 50)))) return { deny: 'The owner denied starting this agent.' }
     if (e.fork) return next(e)
     const prompt = e.prompt.endsWith(REPORT_RULE) ? e.prompt : e.prompt + REPORT_RULE
-    if (e.model !== undefined) return next({ ...e, prompt })
+    if (e.model !== undefined) {
+      const started = await next({ ...e, prompt })
+      if (started.agentId !== undefined) {
+        const id = started.agentId
+        await update($, agentMetaAtom, m => ({ ...m, [id]: { model: e.model ?? 'inherit', effort: '–' } }))
+      }
+      return started
+    }
     const chosen = await chooseAgent($, e.subagentType, e.prompt)
     const started = await next({ ...e, prompt, model: chosen.model })
-    if (started.agentId !== undefined) agentEffort.set(started.agentId, chosen.effort)
+    if (started.agentId !== undefined) {
+      const id = started.agentId
+      agentEffort.set(id, chosen.effort)
+      await update($, agentMetaAtom, m => ({ ...m, [id]: { model: chosen.model, effort: chosen.effort } }))
+    }
     return started
     } finally {
       spawning -= 1
@@ -1234,6 +1250,14 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'mc' }, async ($, e) => ({ text: await mcCommand($, e.args) }))
+
+  on('command.run', { command: 'look' }, async $ => {
+    const sel = await $.ui.selection()
+    if (sel === undefined || sel.text.trim() === '') return { text: 'Nothing is selected. Highlight some text first, then run /look.' }
+    const quoted = sel.text.trim().replace(/^/gm, '> ')
+    await $.prompt.fill({ text: `Check on this and tell me what is wrong, if anything:\n${quoted}\n\n`, mode: 'insert' })
+    return { text: 'Quoted your selection into the prompt.' }
+  })
 
   on('command.run', { command: 'ship' }, async ($, e) => ({ text: await shipCommand($, e.args) }))
 
@@ -1485,6 +1509,9 @@ export const register: Register = on => {
     const route = await read($, routeAtom)
     const pct = progress.total === 0 ? null : (progress.done / progress.total) * 100
     const notes = await read($, notesAtom)
+    const meta = await read($, agentMetaAtom)
+    const turnList = await read($, turnsAtom)
+    const here = projectFor(sessionCwd, projects) ?? autoProject(sessionCwd)
     let costLine = ''
     try {
       const days = ((await $.store.get(STORE.costDays)) ?? {}) as Record<string, Record<string, number>>
@@ -1515,7 +1542,10 @@ export const register: Register = on => {
           <Text bold>{`Agents ${agents.length}/${await effectiveCap($)} · approvals ${settings.approvals}`}</Text>
           {agents.length === 0 && <Text dimColor>none running</Text>}
           {agents.map(a => (
-            <Text>{`• ${a.description} · ${a.type} · ${a.status}`}</Text>
+            <Box flexDirection="row">
+              <Text>{`• ${a.description} · ${meta[a.id] === undefined ? '' : `${meta[a.id]?.model}·${meta[a.id]?.effort} · `}${a.type} · ${a.status}`}</Text>
+              <Button key={`tell-${a.id}`} label="tell" onPress={async () => void (await $.prompt.fill({ text: `Tell ${a.name ?? a.description}: `, mode: 'insert' }))} />
+            </Box>
           ))}
         </Box>
         <Box key="side-progress" flexDirection="column">
@@ -1544,6 +1574,16 @@ export const register: Register = on => {
             <Text>{proof}</Text>
           </Box>
         )}
+        <Box key="side-projects" flexDirection="column">
+          <Text bold>Projects</Text>
+          {[...projects, ...(projects.some(p => p.name === here.name) ? [] : [here])].map(p => (
+            <Text dimColor={p.name !== here.name}>{`${p.name === here.name ? '▶' : ' '} ${p.name}${p.name === here.name ? ' · this chat' : ''}`}</Text>
+          ))}
+        </Box>
+        <Box key="side-tokens" flexDirection="row">
+          <Text bold>{'Tokens  '}</Text>
+          <Text dimColor>{tokenSummary(turnList)}</Text>
+        </Box>
         {notes.length > 0 && (
           <Box key="side-notes" flexDirection="column">
             <Text bold>Notes</Text>

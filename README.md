@@ -25,6 +25,7 @@ Answer `y` to add the marketplace and pick a scope. It loads straight away, and 
 
 **Side panel**
 - Meters, model, a quality trend for the session, live agents and approvals, task progress, and split tasks still queued.
+- Each agent's model, effort and type with a **tell** button; projects (this chat marked); a token-analysis line.
 - Agent messages, the last proof card, cost today with a 14-day sparkline, and quick `@doc` buttons.
 - Notes: anything that failed, said plainly.
 
@@ -68,6 +69,7 @@ Answer `y` to add the marketplace and pick a scope. It loads straight away, and 
 | `/mc` | State, and switches: `panel` (open the side panel), `model pin <haiku\|sonnet\|opus>`, `model auto`, `router on\|off`, `opus on\|off`, `agents <n>`, `resume on\|off`, `alerts on\|off`, `overlay on\|off`, `typo <wrong> <right>`, `glossary <term> = <meaning>`, `tokens` |
 | `/midnight` | `[hours] [--ship]`, `off`, `status` |
 | `/god` | `[minutes]`, `off`, `log` |
+| `/look` | Quote the text you selected into the prompt and ask Claude to check it |
 | `/ship` | `/ship`, `/ship never <pattern>`, `/ship never` |
 | `/project` | `/project`, `/project add <name> = <folder>` |
 
