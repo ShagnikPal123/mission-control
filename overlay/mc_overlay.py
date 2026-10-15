@@ -228,7 +228,8 @@ def main() -> None:
 
     def claude_is_up() -> bool:
         try:
-            out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq claude.exe', '/NH'], capture_output=True, text=True, timeout=5).stdout
+            out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq claude.exe', '/NH'], capture_output=True, text=True, timeout=5,
+                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout  # no console flash every few seconds
             return claude_running(out)
         except (OSError, subprocess.SubprocessError):
             return True  # unknown: keep showing rather than hide wrongly
